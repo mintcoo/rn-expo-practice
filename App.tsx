@@ -1,14 +1,48 @@
-import { StatusBar } from "expo-status-bar";
+import { useState, useEffect } from "react";
 import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
+
+import * as Location from "expo-location";
 
 // 화면 너비 가져오기
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 export default function App() {
+  const [location, setLocation] =
+    useState<Location.LocationGeocodedAddress | null>(null);
+  const [isAllow, setIsAllow] = useState<boolean>(false);
+
+  useEffect(() => {
+    async function getCurrentLocation() {
+      // 위치 권한 요청
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== "granted") {
+        setIsAllow(false);
+        return;
+      } else {
+        setIsAllow(true);
+      }
+      // 위치 정보(위도, 경도) 가져오기
+      const {
+        coords: { latitude, longitude },
+      } = await Location.getCurrentPositionAsync({});
+      //
+      const reverseLocation = await Location.reverseGeocodeAsync({
+        latitude,
+        longitude,
+      });
+      console.log(reverseLocation[0].city);
+      setLocation(reverseLocation[0]);
+    }
+
+    getCurrentLocation();
+  }, []);
+
   return (
     <View style={styles.container}>
       <View style={styles.city}>
-        <Text style={styles.cityName}>Seoul</Text>
+        <Text style={styles.cityName}>
+          {location?.city + " " + location?.region || "Loading..."}
+        </Text>
       </View>
 
       <ScrollView
