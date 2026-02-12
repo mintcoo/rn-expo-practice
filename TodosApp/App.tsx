@@ -9,15 +9,19 @@ import {
   View,
 } from "react-native";
 import { theme } from "./colors";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+
+interface ITodo {
+  [key: string]: { text: string; working: boolean };
+}
+
+const STORAGE_KEY = "@todos";
 
 export default function App() {
   const [working, setWorking] = useState(true);
   const [text, setText] = useState("");
-  const [todos, setTodos] = useState<{
-    [key: string]: { text: string; working: boolean };
-  }>({});
+  const [todos, setTodos] = useState<ITodo>({});
 
   const onPressTravel = () => {
     setWorking(false);
@@ -31,23 +35,48 @@ export default function App() {
     setText(text);
   };
 
-  const addTodo = () => {
+  // 할일 폰에 데이터 저장
+  const saveTodos = async (todos: ITodo) => {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(todos)); // value는 무조건 string 형식으로 저장
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  // 할일 폰에서 데이터 불러오기
+  const loadTodos = async () => {
+    try {
+      const todos = await AsyncStorage.getItem(STORAGE_KEY);
+      console.log("todos", todos);
+      if (todos) {
+        setTodos(JSON.parse(todos));
+      }
+    } catch (error) {
+      console.error(error);
+    }
+  };
+  // 할일 추가
+  const addTodo = async () => {
     if (text === "") {
       return;
     }
-    // const newTodo = {
-    //   id: Date.now(),
-    //   text,
-    //   working,
-    // };
 
     setTodos((prev) => ({
       ...prev,
       [Date.now()]: { text, working },
     }));
+    const newTodo = {
+      ...todos,
+      [Date.now()]: { text, working },
+    };
+    await saveTodos(newTodo);
     setText("");
   };
-  console.log(Object.keys(todos));
+
+  useEffect(() => {
+    loadTodos();
+  }, []);
+
   return (
     <View style={styles.container}>
       <StatusBar style="auto" />
