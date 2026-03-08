@@ -1,5 +1,6 @@
 import { StatusBar } from "expo-status-bar";
 import {
+  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -10,6 +11,7 @@ import {
 } from "react-native";
 import { theme } from "./colors";
 import { useEffect, useState } from "react";
+import Fontisto from "@expo/vector-icons/Fontisto";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 interface ITodo {
@@ -61,16 +63,37 @@ export default function App() {
       return;
     }
 
+    const key = Date.now(); // 이렇게 해야 중복되지 않는 고유한 키 생성
     setTodos((prev) => ({
       ...prev,
-      [Date.now()]: { text, working },
+      [key]: { text, working },
     }));
     const newTodo = {
       ...todos,
-      [Date.now()]: { text, working },
+      [key]: { text, working },
     };
+    // 휴대폰에 할일 저장
     await saveTodos(newTodo);
     setText("");
+  };
+  // 할일 삭제
+  const deleteTodo = (key: string) => {
+    Alert.alert("알림", `${todos[key].text} 할일을 삭제하시겠습니까?`, [
+      { text: "취소" },
+      {
+        text: "삭제",
+        style: "destructive", // 아이폰 전용 색상 달라짐
+        onPress: async () => {
+          console.log("삭제");
+          setTodos((prev) => {
+            const newTodos = { ...prev };
+            delete newTodos[key];
+            return newTodos;
+          });
+          await saveTodos(todos);
+        },
+      },
+    ]);
   };
 
   useEffect(() => {
@@ -116,6 +139,10 @@ export default function App() {
           todos[todo].working === working ? (
             <View key={todo} style={styles.todo}>
               <Text style={styles.todoText}>{todos[todo].text}</Text>
+
+              <TouchableOpacity onPress={() => deleteTodo(todo)}>
+                <Fontisto name="trash" size={18} color={theme.grey} />
+              </TouchableOpacity>
             </View>
           ) : null,
         )}
@@ -159,6 +186,9 @@ const styles = StyleSheet.create({
   },
   todo: {
     backgroundColor: theme.todoBg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 25,
     borderRadius: 20,
